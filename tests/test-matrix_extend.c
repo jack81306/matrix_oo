@@ -2,7 +2,7 @@
 #include <stdio.h>
 
 MatrixAlgo *matrix_providers[] = {
-    &MatrixProvider,
+    &SSEMatrixProvider,
 };
 int main()
 {

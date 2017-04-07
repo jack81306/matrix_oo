@@ -1,5 +1,7 @@
 #include "matrix_extend.h"
 #include <stdlib.h>
+#include <xmmintrin.h>
+#include <immintrin.h>
 #define PRIV(x) \
     ((float **) ((x)->priv))
 
@@ -59,8 +61,90 @@ static bool mul(Matrix *dst, const Matrix *l,const Matrix *r)
     return true;
 }
 
+static bool sse_mul(Matrix *dst, const Matrix *l,const Matrix *r)
+{
+    int r_row,r_col,l_row,l_col;
+    l_row=l->row;
+    l_col=l->col;
+    r_row=r->row;
+    r_col=r->col;
+
+    if(l_col!=r_row)
+        return false;
+
+    if(l_col%4!=0)
+        return false;
+    dst->priv = getmatrix(l_row,r_col);
+    dst->row=l_row;
+    dst->col=r_col;
+    __m128 src1,src2,dst1;
+    float* all=malloc(sizeof(float)*4);
+    for(int i=0; i<l_row; i++) {
+        for(int j=0; j<r_col; j++) {
+            PRIV(dst)[i][j]=0;
+            for(int k=0; k<l_col; k+=4) {
+                src1=_mm_setr_ps(PRIV(l)[i][k],PRIV(l)[i][k+1],PRIV(l)[i][k+2],PRIV(l)[i][k+3]);
+                src2=_mm_setr_ps(PRIV(r)[k][j],PRIV(r)[k+1][j],PRIV(l)[k+2][j],PRIV(l)[k+3][j]);
+                dst1=_mm_mul_ps(src1,src2);
+                _mm_storeu_ps(all,dst1);
+                PRIV(dst)[i][j]+=all[0]+all[1]+all[2]+all[3];
+            }
+        }
+    }
+
+    return true;
+}
+
+
+static bool avx_mul(Matrix *dst, const Matrix *l,const Matrix *r)
+{
+    int r_row,r_col,l_row,l_col;
+    l_row=l->row;
+    l_col=l->col;
+    r_row=r->row;
+    r_col=r->col;
+
+    if(l_col!=r_row)
+        return false;
+
+    if(l_col%8!=0)
+        return false;
+
+    dst->priv = getmatrix(l_row,r_col);
+    dst->row=l_row;
+    dst->col=r_col;
+    float* all=malloc(sizeof(float)*8);
+    __m256 src1,src2,dst1;
+    for(int i=0; i<l_row; i++) {
+        for(int j=0; j<r_col; j++) {
+            PRIV(dst)[i][j]=0;
+            for(int k=0; k<l_col; k+=8) {
+                src1=_mm256_set_ps(PRIV(l)[i][k+7],PRIV(l)[i][k+6],PRIV(l)[i][k+5],PRIV(l)[i][k+4],
+                                   PRIV(l)[i][k+3],PRIV(l)[i][k+2],PRIV(l)[i][k+1],PRIV(l)[i][k]);
+                src2=_mm256_set_ps(PRIV(l)[k+7][j],PRIV(l)[k+6][j],PRIV(l)[k+5][j],PRIV(l)[k+4][j],
+                                   PRIV(l)[k+3][j],PRIV(l)[k+2][j],PRIV(l)[k+1][j],PRIV(l)[k][j]);
+
+                dst1=_mm256_mul_ps(src1,src2);
+                _mm256_storeu_ps(all,dst1);
+                PRIV(dst)[i][j]+=all[0]+all[1]+all[2]+all[3]+all[4]+all[5]+all[6]+all[7];
+            }
+        }
+    }
+    return true;
+}
+
 MatrixAlgo MatrixProvider = {
     .assign=assign,
     .equal=equal,
     .mul=mul,
+};
+MatrixAlgo SSEMatrixProvider = {
+    .assign=assign,
+    .equal=equal,
+    .mul=sse_mul,
+};
+MatrixAlgo AVXMatrixProvider = {
+    .assign=assign,
+    .equal=equal,
+    .mul=avx_mul,
 };

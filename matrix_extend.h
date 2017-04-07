@@ -18,6 +18,6 @@ typedef struct {
     bool (*mul)(Matrix *dst, const Matrix *l, const Matrix *r);
 } MatrixAlgo;
 
-extern MatrixAlgo MatrixProvider;
+extern MatrixAlgo MatrixProvider,SSEMatrixProvider,AVXMatrixProvider;
 float** getmatrix(int row,int col);
 #endif

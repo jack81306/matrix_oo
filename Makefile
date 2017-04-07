@@ -13,7 +13,7 @@ $(GIT_HOOKS):
 	@echo
 
 CC ?= gcc
-CFLAGS = -Wall -std=gnu99 -g -O2 -I.
+CFLAGS = -Wall -std=gnu99 -g -O2 -I. -msse -mavx
 LDFLAGS = -lpthread
 
 OBJS := \
