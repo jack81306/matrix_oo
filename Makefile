@@ -1,7 +1,8 @@
 EXEC = \
     tests/test-matrix \
 	tests/test-matrix_extend \
-    tests/test-stopwatch 
+    tests/test-stopwatch \
+	tests/test-random
 
 GIT_HOOKS := .git/hooks/applied
 OUT ?= .build
@@ -13,7 +14,7 @@ $(GIT_HOOKS):
 	@echo
 
 CC ?= gcc
-CFLAGS = -Wall -std=gnu99 -g -O2 -I. -msse -mavx
+CFLAGS = -Wall -std=gnu99 -g -I. -msse -mavx
 LDFLAGS = -lpthread
 
 OBJS := \
